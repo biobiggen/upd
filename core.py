@@ -119,6 +119,10 @@ FF_RATIO_HOM_UPPER = 1.5       # ff_hom/ff_het above this suggests genome-wide h
 HET_OFFSET_MIN = 0.02          # |AF-0.5| floor, filters out noise-driven zero offsets
 HET_BAND = 0.25                # AF window for maternal BA sites (0.5 +/- HET_BAND)
 
+# Depth threshold for the fetal-fraction homozygous-sites path (separate from
+# DEPTH_FILTER, which gates the HMM region filtering).
+FF_DEPTH_THRESHOLD = 450
+
 
 class UPDCalculator:
     """UPD calculator.
@@ -129,9 +133,6 @@ class UPDCalculator:
         test_code: test code type (affects fetal fraction thresholds)
         cli: sample identifier (derived from the readlist file name by default)
     """
-
-    PASS_FLAG = 'Pass'
-    FAIL_FLAG = 'Fail'
 
     def __init__(
         self,
@@ -319,8 +320,6 @@ class UPDCalculator:
 
     def get_fetal_fraction(self) -> float:
         """Compute the fetal fraction."""
-        _threshold_depth = 450
-
         if 'SNP_Tag' not in self.readlist_df.columns:
             self.get_probe_type(self.probe_file)
 
@@ -341,34 +340,8 @@ class UPDCalculator:
         index_AA = df.pA_Ratio.between(0.75, 1 - min_threshold)
         query_index = index_snp & (index_BB | index_AA) & ~index_chrx & ~index_chry
 
-        if np.sum(query_index) < 35:
-            self.ff_raw = 0.0
-            self.ff_flag = self.FAIL_FLAG
-            self.ff_reason = f'Insufficient valid SNPs ({np.sum(query_index)} < 35)'
-        else:
-            self.ff_flag = self.PASS_FLAG
-            self.ff_reason = None
-
-        col_required = ['#Chr', 'pA_Ratio', 'Depth', 'SNP_Tag']
-        col_available = [col for col in col_required if col in df.columns]
-        snp_df = df.loc[query_index, col_available].copy()
-        snp_df = snp_df[snp_df.Depth >= _threshold_depth / 3]
-
-        mask = snp_df['pA_Ratio'] > 0.5
-        snp_df.loc[mask, 'pA_Ratio'] = 1 - snp_df.loc[mask, 'pA_Ratio']
-        g = snp_df.groupby('SNP_Tag')
-        group_sizes = g.size()
-
-        if np.sum(group_sizes > 35) > 1:
-            af = g.pA_Ratio.median()[group_sizes > 35]
-            df_med = af.median()
-            self.ff_raw = 2 * df_med if not np.isnan(df_med) else 0.0
-        elif snp_df.shape[0] > 35:
-            af_med = snp_df.pA_Ratio.median()
-            self.ff_raw = 2 * af_med if not np.isnan(af_med) else 0.0
-
         base_condition = index_snp & ~index_chrx & ~index_chry
-        query_index2 = base_condition & (df.Depth >= _threshold_depth)
+        query_index2 = base_condition & (df.Depth >= FF_DEPTH_THRESHOLD)
 
         fbref = df.loc[query_index2 & index_BB, 'pA_Ratio']
         faref = df.loc[query_index2 & index_AA, 'pA_Ratio']
@@ -401,9 +374,6 @@ class UPDCalculator:
         else:
             ffAA = ffBB = ffAB = 1e-6
 
-        sigma = (np.std(fbref, ddof=1) + np.std(faref, ddof=1)) / 2
-        sigma = 0 if np.isnan(sigma) else sigma
-
         # ---- Dual-track estimate: maternal homozygous vs maternal BA path ----
         # ffAB comes from homozygous sites and implicitly assumes the fetus is
         # heterozygous there; a genome-wide homozygous fetus makes it about 2x
@@ -411,7 +381,7 @@ class UPDCalculator:
         # when the ratio is clearly high the BA estimate is used instead so that
         # downstream does not misread BBAA/AABB as BBBA/AABA.
         ff_hom = ffAB
-        het_res = self._estimate_ff_het(df, _threshold_depth)
+        het_res = self._estimate_ff_het(df, FF_DEPTH_THRESHOLD)
         ff_het = het_res['ff']
 
         ff_ratio = None
@@ -445,20 +415,8 @@ class UPDCalculator:
         self.ff_het_shifted_sites = het_res['n_shifted']
 
         self.fetal_fraction = ffAB
-
-        dep_col = 'DepRegionGC'
-        if dep_col not in df.columns:
-            dep_col = 'Depth'
-
-        y_depth = df.loc[index_chry, dep_col].median()
-        index_auto = (~df[df.columns[0]].isin(['chrX', 'chrY'])) & (df[dep_col] >= 400)
-        a_depth = df.loc[index_auto, dep_col].median()
-
-        ffy = y_depth / a_depth if a_depth > 0 else 0.0
-        self.sigma = sigma
-        self.gc_ff_ref = [ffAA, ffAB, ffBB, ffy, sigma]
         self.ff = self.fetal_fraction
-        return float(f'{self.fetal_fraction:.3f}')
+        return float(self.fetal_fraction)
 
     # ------------------------------------------------------------------
     # Fetal genotype prediction
@@ -507,7 +465,7 @@ class UPDCalculator:
             position = row['Pos']
             pA_ratio = row['pA_Ratio']
             depth = row['Depth']
-            mother_genotype = mother_gt.iloc[index]
+            mother_genotype = mother_gt.loc[index]
 
             if pA_ratio < max(0.01, fetal_fraction / 5):
                 simple_prediction = 'BB'
@@ -654,9 +612,12 @@ class UPDCalculator:
                 continue
 
             try:
-                obs_indices = [
-                    OBS_MAPPING[obs] for obs in obs_sequence if obs in OBS_MAPPING
-                ]
+                # All mother genotype is AA/BB here (filtered_data), and fetal
+                # genotype is BB/BA/AA, so every combo is present in OBS_MAPPING.
+                # Map directly so obs_indices stays aligned with positions and
+                # filtered_data; an unknown observation raises KeyError instead
+                # of being silently dropped (which would misalign downstream).
+                obs_indices = [OBS_MAPPING[obs] for obs in obs_sequence]
                 if len(obs_indices) == 0:
                     upd_results[region_name] = {
                         'status': 'no_valid_observations',

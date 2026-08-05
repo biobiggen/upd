@@ -201,7 +201,8 @@ python -m upd.cli report --upd-jsons a.json b.json -o upd_report.csv
    （`MIN_REGION_SNPS`、`MIN_HOMOZYGOUS_SNPS`、`MIN_OBSERVATIONS`、
    `MIN_REGION_LENGTH`、`DEPTH_FILTER`、`NORMAL_RATIO_THRESHOLD`、
    `SIGNIFICANT_UPD_RATIO`），HMM 参数为 `STARTPROB` / `TRANSMAT` /
-   `EMISSIONPROB`。低深度或低胎儿浓度样本可适当下调 `DEPTH_FILTER`。
+   `EMISSIONPROB`。`DEPTH_FILTER`（默认 400）用于 HMM 区域过滤，低深度样本可
+   适当下调；胎儿浓度估计另用独立的 `FF_DEPTH_THRESHOLD`（默认 450）。
 7. **质控**：胎儿浓度低于 `ff_threshold`（0.03）时 UPD 判定不可靠；JSON 中
    区域的 `status` 字段说明该区域为何未能计算（见「输出格式」）。
 
@@ -322,9 +323,11 @@ AF = (1 - ff) * 0.5 + ff * 胎儿alt剂量 / 2
 | 分段最小长度 | 20 | 短于此长度的分段被丢弃 |
 | Normal 判定阈值 | 0.2 | Normal 比例 >0.2 即判为正常 |
 | 显著 UPD 比例 | 0.1 | 非 Normal 分段比例 >0.1 计入 `significant_upds` |
+| FF 纯合路径深度 | 450 | 母亲纯合 FF 估计的深度下限（`FF_DEPTH_THRESHOLD`），与 HMM 区域过滤用的 400 `DEPTH_FILTER` 相互独立 |
 | BA 路径最少位点数 | 30 | 低于则不做 FF 交叉校验 |
 | FF 比值切换阈值 | 1.5 | `ff_hom/ff_het` 高于此值改用 BA 路径估计 |
 | BA 偏移下限 | 0.02 | `\|AF-0.5\|` 低于此值视为胎儿杂合，不参与 FF 估计 |
+| BA AF 窗口 | 0.25 | `HET_BAND`：母亲 BA 位点的 `pA_Ratio` 须落在 `0.5 ± 0.25` 内 |
 
 ## 输出格式
 

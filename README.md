@@ -215,8 +215,9 @@ python -m upd.cli report --upd-jsons a.json b.json -o upd_report.csv
    top of `core.py` (`MIN_REGION_SNPS`, `MIN_HOMOZYGOUS_SNPS`,
    `MIN_OBSERVATIONS`, `MIN_REGION_LENGTH`, `DEPTH_FILTER`,
    `NORMAL_RATIO_THRESHOLD`, `SIGNIFICANT_UPD_RATIO`); HMM parameters are
-   `STARTPROB` / `TRANSMAT` / `EMISSIONPROB`. `DEPTH_FILTER` may be lowered for
-   low-depth or low fetal fraction samples.
+   `STARTPROB` / `TRANSMAT` / `EMISSIONPROB`. `DEPTH_FILTER` (default 400)
+   gates HMM region filtering and may be lowered for low-depth samples; the
+   fetal-fraction estimate uses a separate `FF_DEPTH_THRESHOLD` (default 450).
 7. **Quality control**: UPD calls are unreliable when the fetal fraction is
    below `ff_threshold` (0.03); the `status` field of each region in the JSON
    explains why a region could not be computed (see "Output Format").
@@ -348,9 +349,11 @@ Two sets of region coordinates are used:
 | Minimum segment length | 20 | Shorter segments are discarded |
 | Normal decision threshold | 0.2 | Normal ratio >0.2 is called normal |
 | Significant UPD ratio | 0.1 | Non-Normal segments with ratio >0.1 enter `significant_upds` |
+| FF homozygous-path depth | 450 | Depth floor (`FF_DEPTH_THRESHOLD`) for the maternal homozygous FF estimate; separate from the 400 `DEPTH_FILTER` used for HMM region filtering |
 | Minimum sites for the BA path | 30 | Below this no FF cross-check is done |
 | FF ratio switch threshold | 1.5 | `ff_hom/ff_het` above this switches to the BA estimate |
 | BA offset floor | 0.02 | `\|AF-0.5\|` below this is treated as a heterozygous fetus and excluded from FF estimation |
+| BA AF window | 0.25 | `HET_BAND`: maternal BA sites must have `pA_Ratio` within `0.5 +/- 0.25` |
 
 ## Output Format
 
