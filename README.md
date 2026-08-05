@@ -24,7 +24,7 @@ A standalone UPD (Uniparental Disomy) analysis tool for NIPT SNP readlists.
 | hmmlearn | >=0.3.0 | Must provide `CategoricalHMM` (absent in 0.2.x) |
 | matplotlib | >=3.4 | Required only for the plotting feature |
 
-Pinned versions are listed in `upd_tool/requirements.txt`.
+Pinned versions are listed in `requirements.txt`.
 
 ### Operating systems
 
@@ -42,11 +42,14 @@ per sample is a few hundred MB (at the 13833-probe scale).
 
 ```bash
 git clone https://github.com/biobiggen/upd
-cd upd
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r upd_tool/requirements.txt
+pip install -r upd/requirements.txt
 ```
+
+The repository root **is** the Python package `upd`, so all commands below must
+be run from the directory that *contains* the cloned `upd/` directory (the
+modules use relative imports). Do not `cd upd` first.
 
 Pure Python, no compilation needed. Installation time on a normal desktop is
 dominated by downloading the numpy/pandas/scipy wheels, usually a few minutes.
@@ -59,7 +62,7 @@ is provided; its output format is identical to production.
 ### 1. Generate simulated demo data
 
 ```bash
-python -m upd_tool.simulate_demo_data -o demo_data
+python -m upd.simulate_demo_data -o demo_data
 ```
 
 Generated content (defaults: fetal fraction 0.10, mean depth 1200x, 120 SNPs
@@ -82,7 +85,7 @@ readlist column format:
 ### 2. Run a single sample
 
 ```bash
-python -m upd_tool.cli single \
+python -m upd.cli single \
     -i demo_data/demoP01_updm_consensus.mapped.clipped.snp.reads.list \
     -o demo_out/demoP01_upd_results.json \
     -p demo_data/demo_probe.bed \
@@ -109,11 +112,11 @@ For this simulated sample the `final_state` of `15q11q13` is expected to be
 ### 3. Batch processing and summary report
 
 ```bash
-python -m upd_tool.cli batch \
+python -m upd.cli batch \
     -i demo_data/ -o demo_out/ -p demo_data/demo_probe.bed \
     --threads 4 --plot-dir demo_out/UPD_image/ -v
 
-python -m upd_tool.cli report --results demo_out/ -o demo_out/upd_report.csv
+python -m upd.cli report --results demo_out/ -o demo_out/upd_report.csv
 ```
 
 Expected output: one `*_upd_results.json` per sample under `demo_out/`, one PNG
@@ -135,7 +138,7 @@ minutes for the real 13833-row panel; `batch` scales linearly with
 ### Single sample
 
 ```bash
-python -m upd_tool.cli single \
+python -m upd.cli single \
     -i sample_consensus.mapped.clipped.snp.reads.list \
     -o result.json \
     -p /path/to/NIPT3V4_CNV-HAP_targets_hg38.bed \
@@ -145,14 +148,14 @@ python -m upd_tool.cli single \
 Also generate the scatter plot:
 
 ```bash
-python -m upd_tool.cli single -i sample.readslist -o result.json \
+python -m upd.cli single -i sample.readslist -o result.json \
     -p probe.bed --plot sample_upd_regions_pa_ratio.png
 ```
 
 ### Batch processing
 
 ```bash
-python -m upd_tool.cli batch \
+python -m upd.cli batch \
     -i ./readslist_dir/ \
     -o ./results/ \
     -p /path/to/probe.bed \
@@ -178,10 +181,10 @@ Arguments:
 
 ```bash
 # Scan a directory
-python -m upd_tool.cli report --results ./results/ -o upd_report.csv
+python -m upd.cli report --results ./results/ -o upd_report.csv
 
 # Or pass an explicit file list
-python -m upd_tool.cli report --upd-jsons a.json b.json -o upd_report.csv
+python -m upd.cli report --upd-jsons a.json b.json -o upd_report.csv
 ```
 
 ## Running on Your Own Data
@@ -221,7 +224,7 @@ python -m upd_tool.cli report --upd-jsons a.json b.json -o upd_report.csv
 ## Programming Interface
 
 ```python
-from upd_tool import UPDCalculator
+from upd import UPDCalculator
 
 calc = UPDCalculator(probe_version='NIPT3V4', probe_file='probe.bed')
 calc.load_readlist('sample.snp.reads.list')
@@ -234,7 +237,7 @@ print(calc.ff_info)                 # FF diagnostics (both estimates and ratio)
 Convenience function:
 
 ```python
-from upd_tool.core import calculate_upd
+from upd.core import calculate_upd
 
 results = calculate_upd('sample.readslist', probe_file='probe.bed')
 
@@ -246,13 +249,15 @@ print(results['_ff_info'])
 
 ## Module Layout
 
+The repository root is the package itself; the files below sit directly in it.
+
 | File | Description |
 |---|---|
 | `core.py` | `UPDCalculator` class, core UPD computation |
 | `regions.py` | UPD target region coordinates |
 | `plotting.py` | pA_Ratio scatter plotting |
 | `cli.py` | Command-line entry point |
-| `__main__.py` | Makes `python -m upd_tool` equivalent to `python -m upd_tool.cli` |
+| `__main__.py` | Makes `python -m upd` equivalent to `python -m upd.cli` |
 | `simulate_demo_data.py` | Small simulated demo dataset generator |
 | `requirements.txt` | Dependency list |
 

@@ -24,9 +24,9 @@ Subcommands:
     report - aggregate JSON results into a CSV report
 
 Usage:
-    python -m upd_tool.cli single -i sample.readslist -o result.json -p probe.bed
-    python -m upd_tool.cli batch -i ./readslist_dir/ -o ./results/ --threads 8 -p probe.bed
-    python -m upd_tool.cli report --results ./results/ -o upd_report.csv
+    python -m upd.cli single -i sample.readslist -o result.json -p probe.bed
+    python -m upd.cli batch -i ./readslist_dir/ -o ./results/ --threads 8 -p probe.bed
+    python -m upd.cli report --results ./results/ -o upd_report.csv
 """
 
 import argparse
@@ -393,7 +393,7 @@ def run_report(args: argparse.Namespace) -> int:
 # ============================================================================
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog='upd_tool',
+        prog='upd',
         description='UPD (Uniparental Disomy) calculation tool',
     )
     subparsers = parser.add_subparsers(dest='command', required=True)

@@ -15,8 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Package entry point: makes ``python -m upd_tool`` equivalent to
-``python -m upd_tool.cli``."""
+"""Package entry point: makes ``python -m upd`` equivalent to
+``python -m upd.cli``."""
 
 from .cli import main
 

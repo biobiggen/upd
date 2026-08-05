@@ -20,7 +20,7 @@ Small simulated demo dataset generator
 
 Real plasma data cannot be distributed publicly, so this script generates a
 dataset from the forward model of the UPD computation that runs the whole
-:mod:`upd_tool` pipeline end to end:
+:mod:`upd` pipeline end to end:
 
 - probe file ``demo_probe.bed`` (three columns: ``#Chr`` / ``Pos`` / ``Type``)
 - one ``*_consensus.mapped.clipped.snp.reads.list`` file per sample
@@ -46,7 +46,7 @@ State        Fetal genotype
 
 Usage::
 
-    python -m upd_tool.simulate_demo_data -o demo_data
+    python -m upd.simulate_demo_data -o demo_data
 """
 
 import argparse
@@ -102,7 +102,7 @@ DEMO_SAMPLES: List[Tuple[str, str, Optional[str], bool]] = [
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description='Generate small simulated demo dataset for upd_tool')
+        description='Generate small simulated demo dataset for upd')
     parser.add_argument('-o', '--output', default='demo_data',
                         help='output directory (default: demo_data)')
     parser.add_argument('--n-probe', type=int, default=120,

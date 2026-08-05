@@ -23,7 +23,7 @@
 | hmmlearn | >=0.3.0 | 必须提供 `CategoricalHMM`（0.2.x 无此类） |
 | matplotlib | >=3.4 | 仅绘图子功能需要 |
 
-版本清单见 `upd_tool/requirements.txt`。
+版本清单见 `requirements.txt`。
 
 ### 操作系统
 
@@ -40,11 +40,13 @@
 
 ```bash
 git clone https://github.com/biobiggen/upd
-cd upd
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r upd_tool/requirements.txt
+pip install -r upd/requirements.txt
 ```
+
+仓库根目录**本身**就是 Python 包 `upd`，模块之间使用相对导入，因此下文所有
+命令都需要在**包含克隆出的 `upd/` 目录的上一级目录**中执行，不要先 `cd upd`。
 
 纯 Python 实现，无需编译。在普通台式机上安装耗时主要来自下载
 numpy/pandas/scipy 的 wheel 包，通常几分钟内完成。
@@ -57,7 +59,7 @@ numpy/pandas/scipy 的 wheel 包，通常几分钟内完成。
 ### 1. 生成模拟演示数据
 
 ```bash
-python -m upd_tool.simulate_demo_data -o demo_data
+python -m upd.simulate_demo_data -o demo_data
 ```
 
 生成内容（默认胎儿浓度 0.10、平均深度 1200×、每个目标区域 120 个 SNP，
@@ -80,7 +82,7 @@ readlist 列格式：
 ### 2. 运行单样本计算
 
 ```bash
-python -m upd_tool.cli single \
+python -m upd.cli single \
     -i demo_data/demoP01_updm_consensus.mapped.clipped.snp.reads.list \
     -o demo_out/demoP01_upd_results.json \
     -p demo_data/demo_probe.bed \
@@ -103,11 +105,11 @@ python -m upd_tool.cli single \
 ### 3. 批量处理与汇总报告
 
 ```bash
-python -m upd_tool.cli batch \
+python -m upd.cli batch \
     -i demo_data/ -o demo_out/ -p demo_data/demo_probe.bed \
     --threads 4 --plot-dir demo_out/UPD_image/ -v
 
-python -m upd_tool.cli report --results demo_out/ -o demo_out/upd_report.csv
+python -m upd.cli report --results demo_out/ -o demo_out/upd_report.csv
 ```
 
 预期输出：`demo_out/` 下每个样本一个 `*_upd_results.json`，
@@ -126,7 +128,7 @@ python -m upd_tool.cli report --results demo_out/ -o demo_out/upd_report.csv
 ### 单样本计算
 
 ```bash
-python -m upd_tool.cli single \
+python -m upd.cli single \
     -i sample_consensus.mapped.clipped.snp.reads.list \
     -o result.json \
     -p /path/to/NIPT3V4_CNV-HAP_targets_hg38.bed \
@@ -136,14 +138,14 @@ python -m upd_tool.cli single \
 同时生成散点图：
 
 ```bash
-python -m upd_tool.cli single -i sample.readslist -o result.json \
+python -m upd.cli single -i sample.readslist -o result.json \
     -p probe.bed --plot sample_upd_regions_pa_ratio.png
 ```
 
 ### 批量处理
 
 ```bash
-python -m upd_tool.cli batch \
+python -m upd.cli batch \
     -i ./readslist_dir/ \
     -o ./results/ \
     -p /path/to/probe.bed \
@@ -169,10 +171,10 @@ python -m upd_tool.cli batch \
 
 ```bash
 # 从目录扫描
-python -m upd_tool.cli report --results ./results/ -o upd_report.csv
+python -m upd.cli report --results ./results/ -o upd_report.csv
 
 # 或指定文件列表
-python -m upd_tool.cli report --upd-jsons a.json b.json -o upd_report.csv
+python -m upd.cli report --upd-jsons a.json b.json -o upd_report.csv
 ```
 
 ## 在自有数据上运行
@@ -206,7 +208,7 @@ python -m upd_tool.cli report --upd-jsons a.json b.json -o upd_report.csv
 ## 编程接口
 
 ```python
-from upd_tool import UPDCalculator
+from upd import UPDCalculator
 
 calc = UPDCalculator(probe_version='NIPT3V4', probe_file='probe.bed')
 calc.load_readlist('sample.snp.reads.list')
@@ -219,7 +221,7 @@ print(calc.ff_info)                 # FF 诊断信息（两条路径估计值与
 便捷函数：
 
 ```python
-from upd_tool.core import calculate_upd
+from upd.core import calculate_upd
 
 results = calculate_upd('sample.readslist', probe_file='probe.bed')
 
@@ -231,13 +233,15 @@ print(results['_ff_info'])
 
 ## 模块结构
 
+仓库根目录即包本身，下列文件直接位于其中。
+
 | 文件 | 说明 |
 |---|---|
 | `core.py` | `UPDCalculator` 类，UPD 计算核心逻辑 |
 | `regions.py` | UPD 目标区域坐标定义 |
 | `plotting.py` | pA_Ratio 散点图绘制 |
 | `cli.py` | 命令行入口 |
-| `__main__.py` | 使 `python -m upd_tool` 等价于 `python -m upd_tool.cli` |
+| `__main__.py` | 使 `python -m upd` 等价于 `python -m upd.cli` |
 | `simulate_demo_data.py` | 小型模拟演示数据集生成器 |
 | `requirements.txt` | 依赖清单 |
 
